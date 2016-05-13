@@ -8,20 +8,30 @@ import (
 	"net/http"
 )
 
+
+type ExtIpnet struct {
+	ipnet net.IPNet
+	permit bool
+}
+type ExtIp struct {
+	ip net.IP
+	permit bool
+}
 type IPFilter struct {
-	ipnets []net.IPNet
-	ips    []net.IP
+	ipnets []ExtIpnet
+	ips    []ExtIp
 }
 
 func (f *IPFilter) FilterIP(ip net.IP) bool {
 	for _, item := range f.ipnets {
-		if item.Contains(ip) {
-			return true
+		if item.ipnet.Contains(ip) {
+
+			return item.permit
 		}
 	}
 	for _, item := range f.ips {
-		if item.Equal(ip) {
-			return true
+		if item.ip.Equal(ip) {
+			return item.permit
 		}
 	}
 	return false
@@ -36,7 +46,12 @@ func (f *IPFilter) FilterIPString(s string) bool {
 }
 
 func (f *IPFilter) AddIPNet(item net.IPNet) {
-	f.ipnets = append(f.ipnets, item)
+	entry := ExtIpnet{item,true}
+	f.ipnets = append(f.ipnets, entry)
+}
+func (f *IPFilter) AddIPNetExt(item net.IPNet,permit bool) {
+	entry := ExtIpnet{item,permit}
+	f.ipnets = append(f.ipnets, entry)
 }
 
 func (f *IPFilter) AddIPNetString(s string) error {
@@ -47,9 +62,23 @@ func (f *IPFilter) AddIPNetString(s string) error {
 	f.AddIPNet(*ipnet)
 	return nil
 }
+func (f *IPFilter) AddIPNetStringExt(s string,permit bool) error {
+	_, ipnet, err := net.ParseCIDR(s)
+	if err != nil {
+		return err
+	}
+	f.AddIPNetExt(*ipnet,permit)
+	return nil
+}
 
 func (f *IPFilter) AddIP(ip net.IP) {
-	f.ips = append(f.ips, ip)
+	entry := ExtIp{ip,true}
+	f.ips = append(f.ips, entry)
+}
+
+func (f *IPFilter) AddIPExt(ip net.IP,permit bool) {
+	entry := ExtIp{ip,true}
+	f.ips = append(f.ips, entry)
 }
 
 func (f *IPFilter) AddIPString(s string) error {
@@ -58,6 +87,14 @@ func (f *IPFilter) AddIPString(s string) error {
 		return errors.New("Parse IP Error: " + s)
 	}
 	f.AddIP(ip)
+	return nil
+}
+func (f *IPFilter) AddIPStringExt(s string ,permit bool) error {
+	ip := net.ParseIP(s)
+	if ip == nil {
+		return errors.New("Parse IP Error: " + s)
+	}
+	f.AddIPExt(ip,permit)
 	return nil
 }
 
