@@ -20,6 +20,11 @@ type ExtIp struct {
 type IPFilter struct {
 	ipnets []ExtIpnet
 	ips    []ExtIp
+	defaultBehaviour bool
+}
+
+func (f *IPFilter) SetDefaultBehaviour(behaviour bool)  {
+	f.defaultBehaviour = behaviour
 }
 
 func (f *IPFilter) FilterIP(ip net.IP) bool {
@@ -34,7 +39,7 @@ func (f *IPFilter) FilterIP(ip net.IP) bool {
 			return item.permit
 		}
 	}
-	return false
+	return f.defaultBehaviour
 }
 
 func (f *IPFilter) FilterIPString(s string) bool {
